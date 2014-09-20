@@ -133,12 +133,12 @@ td {
 		return html
 	}
 
-	Map<String, Object> getData() {
-		for (key in users.keySet()) {
-			for (view in users.get(key)) {
-				println "${key}: ${view.value}: ${view.index.metric_name}"
-			}
-
-		}
-	}
+//	Map<String, Object> getData() {
+//		for (key in users.keySet()) {
+//			for (view in users.get(key)) {
+//				println "${key}: ${view.value}: ${view.index.metric_name}"
+//			}
+//
+//		}
+//	}
 }
