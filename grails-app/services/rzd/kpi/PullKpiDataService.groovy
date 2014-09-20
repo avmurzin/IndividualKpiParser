@@ -2,6 +2,7 @@ package rzd.kpi
 
 import grails.plugins.rest.client.RestBuilder
 import grails.transaction.Transactional
+import java.text.SimpleDateFormat
 import org.codehaus.groovy.grails.web.json.JSONObject
 import rzd.kpi.aux.Branches
 import rzd.kpi.aux.WorkerIndexes
@@ -10,8 +11,8 @@ import rzd.kpi.aux.WorkersAndIndexes
 @Transactional
 class PullKpiDataService {
 	
-	List<WorkerIndexes> indexes = new LinkedList<WorkerIndexes>()
-	List<Branches> branches = new LinkedList<Branches>()
+	List<WorkerIndexes> indexes = new ArrayList<WorkerIndexes>()
+	List<Branches> branches = new ArrayList<Branches>()
 	WorkersAndIndexes resultData = WorkersAndIndexes.getInstance()
 	
 	def hostName = 'http://gvc-api-v3.orw.oao.rzd'
@@ -22,15 +23,34 @@ class PullKpiDataService {
 		
 	RestBuilder rest = new RestBuilder()
 
+	/**
+	 * Подготовить массив значений показателей всех видов для каждого сотрудника 
+	 * каждого подразделения за неделю от текущей даты.
+	 * @return nothing
+	 */
     def calculateKpi() {
-		//TODO: реализация вызова с beginDate - текущее время, endDate - минус неделя
-		calculateKpi('08.09.2014', '15.09.2014')
+		Calendar calendar = new GregorianCalendar()
+		SimpleDateFormat formattedDate = new SimpleDateFormat("dd.MM.yyyy")
+		String dateToday = formattedDate.format(calendar.getTime())
+		calendar.add(Calendar.DAY_OF_MONTH, -7)
+		String dateWeekAgo = formattedDate.format(calendar.getTime())
+
+		calculateKpi(dateWeekAgo, dateToday)
     }
 	
+	/**
+	 * Подготовить массив значений показателей всех видов для каждого сотрудника каждого подразделения.
+	 * @param beginDate - начальная дата в формате дд.мм.гггг 
+	 * @param endDate - конечная дата в формате дд.мм.гггг 
+	 * @return nothing
+	 */
 	def calculateKpi(String beginDate, String endDate) {
 		
 		getIndexesList()
 		getBranchesList()
+		resultData.clearAll(beginDate, endDate)
+		
+		println "${beginDate}: ${endDate}"
 		
 		for (Branches branch : branches) {
 			for (WorkerIndexes index : indexes) {
@@ -38,11 +58,15 @@ class PullKpiDataService {
 				def httpResp = rest.get("${hostName}${pullIndexesUrl}", urlVariables)
 				httpResp.json instanceof JSONObject
 				httpResp.json.each {
-					resultData.add("${it.object}", "${it.kpi}")
-					
+					resultData.add("${it.object}", "${it.kpi}", index)
+					println "${it.object} : ${it.kpi}"
 				}
 			}
 		}
+		
+//		println "Calculate complete"
+//		resultData.getData()
+		
 	}
 	
 	def getIndexesList() {
@@ -53,6 +77,7 @@ class PullKpiDataService {
 			WorkerIndexes index = new WorkerIndexes();
 			index.function_name = "${it.function_name}"
 			index.metric_name = "${it.metric_name}"
+			index.target_value = it.target_value
 			indexes.add(index)
 			index = null
 		}
@@ -65,31 +90,11 @@ class PullKpiDataService {
 		httpResp.json.each {
 			Branches branch = new Branches();
 			branch.zo = "${it.zo}"
+			branch.zo_name = "${it.zo_name}"
 			branches.add(branch)
 			branch = null
 		}
 	}
+	
 }
 
-
-//	RestBuilder rest = new RestBuilder()
-//	def urlVariables = [key:grailsApplication.config.meetup.key, topic : "london", time : ",1w"]
-//	def url = "${grailsApplication.config.meetup.baseurl}/2/open_events?key={key}&topic={topic}&time={time}"
-//	def resp = rest.get(url, urlVariables)
-	
-//	def hostName = 'http://192.168.1.2:8080/AvroraStorageUI-0.1'
-//	def getTree = '/tree'
-//	def newFolder = '/new_folder/{tree_id}?name={name}&description={description}'
-
-// 08.09.2014
-
-//
-//		def urlVariables = [tree_id: "c2b238b1-24e3-4f4b-bc55-2765abd19be7", name:"Grails_folder", description : "Grails rulezz"]
-//		def resp1 = rest.get("${hostName}${newFolder}", urlVariables)
-//
-//		resp1.json instanceof JSONObject
-//
-//		resp1.json.each {
-//				//println "id:${it.id}, value:${it.value}"
-//			println "${it}"
-//			}
