@@ -26,13 +26,24 @@ class PullKpiDataService {
 	/**
 	 * Подготовить массив значений показателей всех видов для каждого сотрудника 
 	 * каждого подразделения за неделю от текущей даты.
+	 * Данные сохраняются в @see WorkerAndIndexes.
 	 * @return nothing
 	 */
-    def calculateKpi() {
+	def calculateKpi() {
+		calculateKpi(7)
+	}
+	
+	/**
+	 * Подготовить массив значений показателей всех видов для каждого сотрудника 
+	 * каждого подразделения за указанное число дней назад от текущей даты.
+	 * Данные сохраняются в @see WorkerAndIndexes.
+	 * @return nothing
+	 */
+    def calculateKpi(int daysAgo) {
 		Calendar calendar = new GregorianCalendar()
 		SimpleDateFormat formattedDate = new SimpleDateFormat("dd.MM.yyyy")
 		String dateToday = formattedDate.format(calendar.getTime())
-		calendar.add(Calendar.DAY_OF_MONTH, -7)
+		calendar.add(Calendar.DAY_OF_MONTH, (-1)*daysAgo)
 		String dateWeekAgo = formattedDate.format(calendar.getTime())
 
 		calculateKpi(dateWeekAgo, dateToday)
@@ -42,6 +53,7 @@ class PullKpiDataService {
 	 * Подготовить массив значений показателей всех видов для каждого сотрудника каждого подразделения.
 	 * @param beginDate - начальная дата в формате дд.мм.гггг 
 	 * @param endDate - конечная дата в формате дд.мм.гггг 
+	 * Данные сохраняются в @see WorkerAndIndexes.
 	 * @return nothing
 	 */
 	def calculateKpi(String beginDate, String endDate) {
@@ -49,9 +61,7 @@ class PullKpiDataService {
 		getIndexesList()
 		getBranchesList()
 		resultData.clearAll(beginDate, endDate)
-		
-		println "${beginDate}: ${endDate}"
-		
+
 		for (Branches branch : branches) {
 			for (WorkerIndexes index : indexes) {
 				def urlVariables = [beginDate: "${beginDate}", endDate: "${endDate}", code: "${index.function_name}", branch:"${branch.zo}"]
@@ -59,16 +69,22 @@ class PullKpiDataService {
 				httpResp.json instanceof JSONObject
 				httpResp.json.each {
 					resultData.add("${it.object}", "${it.kpi}", index)
-					println "${it.object} : ${it.kpi}"
 				}
 			}
 		}
-		
-//		println "Calculate complete"
-//		resultData.getData()
-		
 	}
-	
+
+	/**
+	 * Изменить URL хоста для закачки данных.
+	 * @param hostName - имя хоста (без финального /)
+	 * @return
+	 */
+	def setHostName(String hostName) {
+		if (!hostName.equals("")) {
+			this.hostName = hostName
+		}
+	}
+		
 	def getIndexesList() {
 		indexes.clear()
 		def httpResp = rest.get("${hostName}${indexesListUrl}")
@@ -95,6 +111,7 @@ class PullKpiDataService {
 			branch = null
 		}
 	}
+	
 	
 }
 
