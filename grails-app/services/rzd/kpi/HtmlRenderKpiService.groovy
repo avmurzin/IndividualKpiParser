@@ -66,7 +66,12 @@ td {
      </style>
    """
 
-
+/**
+ * Возвращает строку с html, содержащим таблицу показателей для 
+ * указанного имени сотрудника.
+ * @param name
+ * @return
+ */
 	def getHtmlByUser(String name) {
 		List<KpiData> data = resultData.getUsers().get(name)
 		String beginDate = resultData.beginDate
